@@ -1,4 +1,4 @@
-#! /usr/local/bin/python
+#!/usr/bin/python
 
 import sys
 import itertools as it
@@ -24,9 +24,17 @@ def flag_last((node, edges)):
   return it.chain((0 for e in edges), [1])
 
 lines = (clean(line).split() for line in sys.stdin)
-lines = ((reverse(v),e) for v,e in lines)
+# newlines = []
+# for l  in lines:
+# #  print l
+#   v,e = l
+#   newlines.append( (reverse(v),e) )
+# lines = newlines
 
+
+lines = ((reverse(v),e) for v,e in lines)
 # get k value from first row
+
 first = lines.next()
 k = len(first[0])
 lines = it.chain([first], lines)

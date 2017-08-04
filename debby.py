@@ -103,6 +103,9 @@ class debruijn_graph:
     i = self._first_edge(v)
     return "".join(take(self.k, self._label_iter(i))[::-1])
 
+  def edge_label(self, i):
+    return "".join(take(self.k, self._label_iter(i))[::-1]) + self._edges[i][0]
+  
   @staticmethod
   def load(filename):
     with open(filename, "r") as f:
