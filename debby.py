@@ -16,21 +16,22 @@ from itertools import compress, count,  islice
 from functools import partial
 from operator import eq
 
-
-def select(item, iterable, i):
-
+memo = {}
+def qselect(item, iterable, i):
+  if id(iterable) not in memo: memo[id(iterable)] = compress(count(), map(partial(eq, item), iterable))
   if i <= 0: return -1
   n = i - 1
+#  indicies = memo[id(iterable)] #
   indicies = compress(count(), map(partial(eq, item), iterable))
   return next(islice(indicies, n, None), -1)
       
-# def select(symbol, sequence, i):
-#   if i <= 0: return -1
-#   start = 0
-#   for j in range(i):
-#       found = sequence.index(symbol, start)
-#       start = found + 1
-#   return found
+def select(symbol, sequence, i):
+  if i <= 0: return -1
+  start = 0
+  for j in range(i):
+      found = sequence.index(symbol, start)
+      start = found + 1
+  return found
 
 
 class debruijn_graph:
