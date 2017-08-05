@@ -10,13 +10,27 @@ def rank(symbol, sequence, i):
 #   ranks = (rank(symbol, sequence, i) for i in range(len(sequence)))
 #   return next(it.dropwhile(lambda __x: __x[1]<i, enumerate(ranks)), (None,None))[0]
 
-def select(symbol, sequence, i):
+# this method is slower, 10 seconds vs 4 seconds for soln below
+# https://stackoverflow.com/questions/8337069/find-the-index-of-the-nth-item-in-a-list
+from itertools import compress, count,  islice
+from functools import partial
+from operator import eq
+
+
+def select(item, iterable, i):
+
   if i <= 0: return -1
-  start = 0
-  for j in range(i):
-      found = sequence.index(symbol, start)
-      start = found + 1
-  return found
+  n = i - 1
+  indicies = compress(count(), map(partial(eq, item), iterable))
+  return next(islice(indicies, n, None), -1)
+      
+# def select(symbol, sequence, i):
+#   if i <= 0: return -1
+#   start = 0
+#   for j in range(i):
+#       found = sequence.index(symbol, start)
+#       start = found + 1
+#   return found
 
 
 class debruijn_graph:
