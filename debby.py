@@ -5,18 +5,27 @@ from bisect import bisect_left, bisect_right
 def rank(symbol, sequence, i):
   return sequence[:i+1].count(symbol)
 
+# def select(symbol, sequence, i):
+#   if i <= 0: return -1
+#   ranks = (rank(symbol, sequence, i) for i in range(len(sequence)))
+#   return next(it.dropwhile(lambda __x: __x[1]<i, enumerate(ranks)), (None,None))[0]
+
 def select(symbol, sequence, i):
   if i <= 0: return -1
-  ranks = (rank(symbol, sequence, i) for i in xrange(len(sequence)))
-  return next(it.dropwhile(lambda (_,x): x<i, enumerate(ranks)), (None,None))[0]
+  start = 0
+  for j in range(i):
+      found = sequence.index(symbol, start)
+      start = found + 1
+  return found
+
 
 class debruijn_graph:
   def __init__(self, k, F, last, edges, edge_flags):
     alphabet = sorted(list(set(edges)))
-    self._F = dict(zip(alphabet, F))
+    self._F = dict(list(zip(alphabet, F)))
     self._F_inv = lambda i: alphabet[bisect_left(F, i, 0, bisect_right(F, i) - 1)]
     self._last = last
-    self._edges = [c + ("","-")[x] for c,x in it.izip(edges,edge_flags)]
+    self._edges = [c + ("","-")[x] for c,x in zip(edges,edge_flags)]
     self.num_edges = len(edges)
     self.num_nodes = sum(last)
     self.k = k
@@ -67,7 +76,7 @@ class debruijn_graph:
 
   def successors(self, v):
     first, last = self._node_range(v)
-    for x in xrange(first, last + 1):
+    for x in range(first, last + 1):
       yield rank(1, self._last, self._fwd(x)) - 1
 
   def indegree(self, v):
@@ -111,7 +120,7 @@ class debruijn_graph:
     with open(filename, "r") as f:
       lines = f.readlines()
     edges = [(int(l),e,int(f)) for l,e,f in (x.strip().split() for x in lines[:-2])]
-    last, edges, flags = map(list, zip(*edges))
-    F = map(int, lines[-2].split())
+    last, edges, flags = list(map(list, list(zip(*edges))))
+    F = list(map(int, lines[-2].split()))
     k = int(lines[-1])
     return debruijn_graph(k, F, last, edges, flags)
