@@ -8,8 +8,17 @@ col_num = int(sys.argv[2])
 
 for i in range(g1.num_edges):
     if col_num == 0:
-        print g1._edges[i][0]
+        print (g1._edges[i][0])
     else:
         for j in range(col_num - 1):
             i = g1._bwd(i)
-        print g1._F_inv(i)
+        print (g1._F_inv(i))
+print "-------"
+for i in range(g1.num_edges):
+    if col_num == 0:
+        print (g1._edges[i][0])
+    else:
+        for j in range(col_num - 1):
+            i = g1._bwd(i)
+        print (g1._F_inv(i))
+        
