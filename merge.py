@@ -37,7 +37,7 @@ def subdivide(g1_subcol, g2_subcol):
         g1_out += [0] * g1_subcol.count(letter) + [1]
         g2_out += [0] * g2_subcol.count(letter) + [1]
 
-    return g1_out, g2_out
+    return g1_out, g2_out, len(active_alphabet)
 
 def check(col, g1s, g1e, g2s, g2e):
     included = set()
@@ -68,7 +68,8 @@ def refine_sets(cols, sets, colno):
     assert g2_sets ==  [item for sublist in set_iter(g2_sets) for item in sublist]
     assert g1_sets.count(1) == len(list(set_iter(g1_sets)))
     assert g2_sets.count(1) == len(list(set_iter(g2_sets)))    
-    
+
+    L = []
     for  (g1_set, g2_set) in zip(set_iter(g1_sets), set_iter(g2_sets)):
         assert(g1_set[-1] == 1)
         assert(g1_set.count(1) == 1)
@@ -83,9 +84,11 @@ def refine_sets(cols, sets, colno):
             print("problem range:", g2_ptr, g2_ptr+g2_num, r)
         else:
             debug=False
-        check(col, g1_ptr,g1_ptr+g1_num, g2_ptr, g2_ptr+g2_num)
-        g1_subsets, g2_subsets = subdivide(g1_col[g1_ptr:g1_ptr+g1_num],
-                                           g2_col[g2_ptr:g2_ptr+g2_num])
+        check(col, g1_ptr, g1_ptr + g1_num, g2_ptr, g2_ptr + g2_num)
+        g1_subsets, g2_subsets, active_alpha_size = subdivide(g1_col[g1_ptr:g1_ptr + g1_num],
+                                           g2_col[g2_ptr:g2_ptr + g2_num])
+        if colno == 0:
+            L += [0] * (active_alpha_size - 1) + [1]
         if debug:
             print("subsets", g2_subsets)
             st = 0
@@ -97,6 +100,12 @@ def refine_sets(cols, sets, colno):
         g2_out_set += g2_subsets
         g1_ptr += g1_num
         g2_ptr += g2_num
+
+    if len(L) > 0:
+        print("s/b num ones", len(list(set_iter(g1_sets))))
+        lfile = open("L", "w")
+        lfile.write("\n".join(map(str,L)))
+        lfile.close()
 
     return g1_out_set, g2_out_set
         
@@ -133,6 +142,7 @@ for colno, col in enumerate([i + 1 for i in range(g1.k)] + [0]):
     
 g1_ptr = 0
 g2_ptr = 0
+print ("k=", g1.k)
 print (g1_sets.count(1),"/",len(g1_sets),",",g2_sets.count(1),"/", len(g2_sets))
 for g1_set, g2_set in zip(set_iter(g1_sets), set_iter(g2_sets)):
     if g1_set[0] == 0:
