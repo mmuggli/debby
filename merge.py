@@ -56,6 +56,7 @@ def check(col, g1s, g1e, g2s, g2e):
         for j in range(g2s, g2e):
             print(j, g2.edge_label(j))
 
+
 def refine_sets(cols, sets, colno):
     g1_col, g2_col = cols
     g1_sets, g2_sets = sets
@@ -78,36 +79,24 @@ def refine_sets(cols, sets, colno):
         
         g1_num = len(g1_set) - 1
         g2_num = len(g2_set) - 1
-        if g2_ptr <= 181 <= g2_ptr+g2_num and col == 2:
-            debug=True
-            r = g2_col[g2_ptr:g2_ptr+g2_num]
-            print("problem range:", g2_ptr, g2_ptr+g2_num, r)
-        else:
-            debug=False
-        check(col, g1_ptr, g1_ptr + g1_num, g2_ptr, g2_ptr + g2_num)
         g1_subsets, g2_subsets, active_alpha_size = subdivide(g1_col[g1_ptr:g1_ptr + g1_num],
                                            g2_col[g2_ptr:g2_ptr + g2_num])
         if colno == 0:
             L += [0] * (active_alpha_size - 1) + [1]
-        if debug:
-            print("subsets", g2_subsets)
-            st = 0
-            for s in set_iter(g2_subsets):
-                n = len(s) - 1
-                print(r[st:st+n])
-                st += n
+
+
         g1_out_set += g1_subsets
         g2_out_set += g2_subsets
         g1_ptr += g1_num
         g2_ptr += g2_num
 
-    if len(L) > 0:
-        print("s/b num ones", len(list(set_iter(g1_sets))))
-        lfile = open("L", "w")
-        lfile.write("\n".join(map(str,L)))
-        lfile.close()
+    # if len(L) > 0:
+    #     print("s/b num ones", len(list(set_iter(g1_sets))))
+    #     lfile = open("L", "w")
+    #     lfile.write("\n".join(map(str,L)))
+    #     lfile.close()
 
-    return g1_out_set, g2_out_set
+    return g1_out_set, g2_out_set, L
         
     
             
@@ -124,17 +113,20 @@ f=open("preg2c" + str(col), "w")
 g2_col = get_column(g2, col)
 for c in g2_col: f.write(c+"\n")
 
-
+L = []
 for colno, col in enumerate([i + 1 for i in range(g1.k)] + [0]):
-    print ("doing column", col, "g1 count:", g1_sets.count(1), "g2 count:", g2_sets.count(1))
-    print (g1_sets.count(1) - len(g1_sets))
-    print (g2_sets.count(1) - len(g2_sets))
+    # print ("doing column", col, "g1 count:", g1_sets.count(1), "g2 count:", g2_sets.count(1))
+    # print (g1_sets.count(1) - len(g1_sets))
+    # print (g2_sets.count(1) - len(g2_sets))
     g1_col = get_column(g1, col)
     f=open("g2c" + str(col), "w")
     g2_col = get_column(g2, col)
     for c in g2_col: f.write(c+"\n")
     f.close()
-    g1_sets, g2_sets = refine_sets((g1_col, g2_col), (g1_sets, g2_sets), col)
+    g1_sets, g2_sets, Lval = refine_sets((g1_col, g2_col), (g1_sets, g2_sets), col)
+    L += Lval
+    if col == g1.k - 1:
+        g1_flagsets, g2_flagsets = g1_sets, g2_sets
 
 # initsets = (g1_sets, g2_sets) # (([0] * g1.num_edges + [1]), ([0] * g2.num_edges + [1]))
 # colgen = ((get_column(g1, col), get_column(g2, col)) for  col in [i + 1 for i in range(g1.k)] + [0])
@@ -142,14 +134,54 @@ for colno, col in enumerate([i + 1 for i in range(g1.k)] + [0]):
     
 g1_ptr = 0
 g2_ptr = 0
-print ("k=", g1.k)
-print (g1_sets.count(1),"/",len(g1_sets),",",g2_sets.count(1),"/", len(g2_sets))
-for g1_set, g2_set in zip(set_iter(g1_sets), set_iter(g2_sets)):
+g1f_ptr = 0
+g2f_ptr = 0
+newflags = set()
+
+# print ("k=", g1.k)
+# print (g1_sets.count(1),"/",len(g1_sets),",",g2_sets.count(1),"/", len(g2_sets))
+for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_sets))):
     if g1_set[0] == 0:
-        print (g1.edge_label(g1_ptr)) #g1._edges[g1_ptr]
+        if g1._edges[g1_ptr] in newflags:
+            print (L[out_ptr], g1._edges[g1_ptr][0], end="")
+            #print (g1.edge_label(g1_ptr), end="")
+            print ("",1)
+        else:
+            print (L[out_ptr], g1._edges[g1_ptr][0], end="")
+            #print (g1.edge_label(g1_ptr), end="")
+            print ("",0)
+        newflags.add(g1._edges[g1_ptr])
         g1_ptr += 1
+
+        # flag part
+        while g1f_ptr < len(g1_flagsets) and g1_flagsets[g1f_ptr] == 1:
+            g1f_ptr += 1
+            newflags = set()
+        g1f_ptr += 1
+            
         if g2_set[0] == 0:
             g2_ptr += 1
+
+            # flag part
+            while g2f_ptr < len(g2_flagsets) and g2_flagsets[g2f_ptr] == 1:
+                g2f_ptr += 1
+                newflags = set()
+            g2f_ptr += 1
     else:
-        print (g2.edge_label(g2_ptr)) #g2._edges[g2_ptr]
+        assert g2_set[0] == 0
+        if g2._edges[g2_ptr] in newflags:
+            print (L[out_ptr], g2._edges[g2_ptr][0], end="")
+            #print (g2.edge_label(g2_ptr), end="")
+            print ("",1)
+        else:
+            print (L[out_ptr], g2._edges[g2_ptr][0], end="")
+            #print (g2.edge_label(g2_ptr), end="")
+            print ("",0)
+        newflags.add(g2._edges[g2_ptr])
         g2_ptr += 1
+
+        # flag part
+        while g2f_ptr < len(g2_flagsets) and g2_flagsets[g2f_ptr] == 1:
+            g2f_ptr += 1
+            newflags = set()
+        g2f_ptr += 1
