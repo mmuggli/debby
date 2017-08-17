@@ -39,24 +39,6 @@ def subdivide(g1_subcol, g2_subcol):
 
     return g1_out, g2_out, len(active_alphabet)
 
-def check(col, g1s, g1e, g2s, g2e):
-    included = set()
-    for i in range(g1s, g1e):
-        included.add(g1.edge_label(i)[-col:-1])
-    for i in range(g2s, g2e):        
-        included.add(g2.edge_label(i)[-col:-1])
-        
-    if not (len(included) == 1):
-        print("included", len(included), "col", col, included)
-        print("g1[", g1s, g1e,"]")
-        print("g2[", g2s, g2e,"]")
-        for j in range(g1s, g1e):
-            print(j,g1.edge_label(j))
-        print("---")
-        for j in range(g2s, g2e):
-            print(j, g2.edge_label(j))
-
-
 def refine_sets(cols, sets, colno):
     g1_col, g2_col = cols
     g1_sets, g2_sets = sets
@@ -65,17 +47,8 @@ def refine_sets(cols, sets, colno):
     g1_ptr = 0
     g2_ptr = 0
 
-    assert g1_sets ==  [item for sublist in set_iter(g1_sets) for item in sublist]
-    assert g2_sets ==  [item for sublist in set_iter(g2_sets) for item in sublist]
-    assert g1_sets.count(1) == len(list(set_iter(g1_sets)))
-    assert g2_sets.count(1) == len(list(set_iter(g2_sets)))    
-
     L = []
     for  (g1_set, g2_set) in zip(set_iter(g1_sets), set_iter(g2_sets)):
-        assert(g1_set[-1] == 1)
-        assert(g1_set.count(1) == 1)
-        assert(g2_set[-1] == 1)
-        assert(g2_set.count(1) == 1)
         
         g1_num = len(g1_set) - 1
         g2_num = len(g2_set) - 1
@@ -84,17 +57,10 @@ def refine_sets(cols, sets, colno):
         if colno == 0:
             L += [0] * (active_alpha_size - 1) + [1]
 
-
         g1_out_set += g1_subsets
         g2_out_set += g2_subsets
         g1_ptr += g1_num
         g2_ptr += g2_num
-
-    # if len(L) > 0:
-    #     print("s/b num ones", len(list(set_iter(g1_sets))))
-    #     lfile = open("L", "w")
-    #     lfile.write("\n".join(map(str,L)))
-    #     lfile.close()
 
     return g1_out_set, g2_out_set, L
         
@@ -115,9 +81,6 @@ for c in g2_col: f.write(c+"\n")
 
 L = []
 for colno, col in enumerate([i + 1 for i in range(g1.k)] + [0]):
-    # print ("doing column", col, "g1 count:", g1_sets.count(1), "g2 count:", g2_sets.count(1))
-    # print (g1_sets.count(1) - len(g1_sets))
-    # print (g2_sets.count(1) - len(g2_sets))
     g1_col = get_column(g1, col)
     f=open("g2c" + str(col), "w")
     g2_col = get_column(g2, col)
@@ -128,9 +91,6 @@ for colno, col in enumerate([i + 1 for i in range(g1.k)] + [0]):
     if col == g1.k - 1:
         g1_flagsets, g2_flagsets = g1_sets, g2_sets
 
-# initsets = (g1_sets, g2_sets) # (([0] * g1.num_edges + [1]), ([0] * g2.num_edges + [1]))
-# colgen = ((get_column(g1, col), get_column(g2, col)) for  col in [i + 1 for i in range(g1.k)] + [0])
-# g1_sets, g2_sets = reduce(refine_sets, colgen, initsets)
     
 g1_ptr = 0
 g2_ptr = 0
@@ -138,8 +98,6 @@ g1f_ptr = 0
 g2f_ptr = 0
 newflags = set()
 
-# print ("k=", g1.k)
-# print (g1_sets.count(1),"/",len(g1_sets),",",g2_sets.count(1),"/", len(g2_sets))
 for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_sets))):
     if g1_set[0] == 0:
         if g1._edges[g1_ptr] in newflags:
