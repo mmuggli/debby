@@ -135,15 +135,17 @@ class Flags():
         self.__check_flagsets()        
     
 flags = Flags(g1_flagsets, g2_flagsets)
+ntcounts = {'A':0, 'C':0, 'G':0,'T':0}
 
 for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_sets))):
     if g1_set[0] == 0:
+        print (L[out_ptr], g1._edges[g1_ptr][0], end=" ")
+        ntcounts[g1.edge_label(g1_ptr)[g1.k-1]] += 1
+
         if flags.seen(g1._edges[g1_ptr][0]):
-            print (L[out_ptr], g1._edges[g1_ptr][0], end=" ")
 #            print (g1.edge_label(g1_ptr), end=" ")
             print (1)
         else:
-            print (L[out_ptr], g1._edges[g1_ptr][0], end=" ")
 #            print (g1.edge_label(g1_ptr), end=" ")
             print (0)
         flags.add(g1._edges[g1_ptr][0])
@@ -157,15 +159,19 @@ for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_se
 
     else:
         assert g2_set[0] == 0
+        print (L[out_ptr], g2._edges[g2_ptr][0], end=" ")
+        ntcounts[g2.edge_label(g2_ptr)[g1.k-1]] += 1                 
+
         if flags.seen(g2._edges[g2_ptr][0]):
-            print (L[out_ptr], g2._edges[g2_ptr][0], end=" ")
+
 #            print (g2.edge_label(g2_ptr), end=" ")
             print (1)
         else:
-            print (L[out_ptr], g2._edges[g2_ptr][0], end=" ")
 #            print (g2.edge_label(g2_ptr), end=" ")
             print (0)
         flags.add(g2._edges[g2_ptr][0])
 
         g2_ptr += 1
         flags.adv_g2()
+print(0, ntcounts['A'], ntcounts['A'] + ntcounts['C']  , ntcounts['A'] + ntcounts['C'] + ntcounts['G'] )
+print(g1.k)
