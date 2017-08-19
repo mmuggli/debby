@@ -88,6 +88,8 @@ L = []
 for colno, col in enumerate([i + 1 for i in range(g1.k)] + [0]):
     g1_col = get_column(g1, col)
     g2_col = get_column(g2, col)
+    if col == 1:
+        g1_col1, g2_col1 = g1_col, g2_col
     g1_sets, g2_sets, Lval = refine_sets((g1_col, g2_col), (g1_sets, g2_sets), col)
     L += Lval
     if col == g1.k - 1:
@@ -140,13 +142,11 @@ ntcounts = {'A':0, 'C':0, 'G':0,'T':0}
 for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_sets))):
     if g1_set[0] == 0:
         print (L[out_ptr], g1._edges[g1_ptr][0], end=" ")
-        ntcounts[g1.edge_label(g1_ptr)[g1.k-1]] += 1
+        ntcounts[g1_col1[g1_ptr]] += 1
 
         if flags.seen(g1._edges[g1_ptr][0]):
-#            print (g1.edge_label(g1_ptr), end=" ")
             print (1)
         else:
-#            print (g1.edge_label(g1_ptr), end=" ")
             print (0)
         flags.add(g1._edges[g1_ptr][0])
 
@@ -160,18 +160,16 @@ for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_se
     else:
         assert g2_set[0] == 0
         print (L[out_ptr], g2._edges[g2_ptr][0], end=" ")
-        ntcounts[g2.edge_label(g2_ptr)[g1.k-1]] += 1                 
+        ntcounts[g2_col1[g2_ptr]] += 1                 
 
         if flags.seen(g2._edges[g2_ptr][0]):
-
-#            print (g2.edge_label(g2_ptr), end=" ")
             print (1)
         else:
-#            print (g2.edge_label(g2_ptr), end=" ")
             print (0)
         flags.add(g2._edges[g2_ptr][0])
 
         g2_ptr += 1
         flags.adv_g2()
+
 print(0, ntcounts['A'], ntcounts['A'] + ntcounts['C']  , ntcounts['A'] + ntcounts['C'] + ntcounts['G'] )
 print(g1.k)
