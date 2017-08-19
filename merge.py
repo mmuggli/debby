@@ -53,7 +53,7 @@ def refine_sets(cols, sets, colno):
         g1_num = len(g1_set) - 1
         g2_num = len(g2_set) - 1
         g1_subsets, g2_subsets, active_alpha_size = subdivide(g1_col[g1_ptr:g1_ptr + g1_num],
-                                           g2_col[g2_ptr:g2_ptr + g2_num])
+                                                              g2_col[g2_ptr:g2_ptr + g2_num])
         if colno == 0:
             L += [0] * (active_alpha_size - 1) + [1]
 
@@ -74,72 +74,98 @@ def refine_sets(cols, sets, colno):
 g1_sets = [0] * g1.num_edges + [1]
 g2_sets = [0] * g2.num_edges + [1]
 
-col=2
-f=open("preg2c" + str(col), "w")
-g2_col = get_column(g2, col)
-for c in g2_col: f.write(c+"\n")
+def flagdump(flags):
+    icount = 0
+    for i in flags:
+        if i == 0:
+            icount += 1
+            print (i, icount)
+        else:
+            print(i)
+            
 
 L = []
 for colno, col in enumerate([i + 1 for i in range(g1.k)] + [0]):
     g1_col = get_column(g1, col)
-    f=open("g2c" + str(col), "w")
     g2_col = get_column(g2, col)
-    for c in g2_col: f.write(c+"\n")
-    f.close()
     g1_sets, g2_sets, Lval = refine_sets((g1_col, g2_col), (g1_sets, g2_sets), col)
     L += Lval
     if col == g1.k - 1:
         g1_flagsets, g2_flagsets = g1_sets, g2_sets
+        #flagdump(g1_flagsets)
+        
 
     
-g1_ptr = 0
-g2_ptr = 0
+g1_ptr = 0 # keeps track of consumed symbols in g1._edges
+g2_ptr = 0 # keeps track of consumed symbols in g1._edges
 g1f_ptr = 0
 g2f_ptr = 0
-newflags = set()
+
+
+class Flags():
+    def __init__(self, g1_flagsets, g2_flagsets):
+        self.g1_flagsets, self.g2_flagsets = g1_flagsets, g2_flagsets
+        self.flagsets_iter = zip(set_iter(self.g1_flagsets), set_iter(self.g2_flagsets))
+        self.cur_flagsets = self.flagsets_iter.__next__()
+        self.newflags =  set()
+        self.g1_ptr, self.g2_ptr = 0,0
+
+        
+    def seen(self, nt): return nt in self.newflags
+
+    def add(self, nt): self.newflags.add(nt)
+
+    def __check_flagsets(self):
+        # if all the flagsets now point to their end marker, then move on to the next flagsets
+        if self.cur_flagsets[0][self.g1_ptr] == 1 and self.cur_flagsets[1][self.g2_ptr] == 1:
+            try:
+                self.cur_flagsets = self.flagsets_iter.__next__()
+            except StopIteration as e:
+                pass
+            self.g1_ptr, self.g2_ptr = 0,0
+            self.newflags = set()
+
+    
+    def adv_g1(self):
+        self.g1_ptr += 1
+        self.__check_flagsets()
+
+    def adv_g2(self):
+        self.g2_ptr += 1
+        self.__check_flagsets()        
+    
+flags = Flags(g1_flagsets, g2_flagsets)
 
 for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_sets))):
     if g1_set[0] == 0:
-        if g1._edges[g1_ptr] in newflags:
-            print (L[out_ptr], g1._edges[g1_ptr][0], end="")
-            #print (g1.edge_label(g1_ptr), end="")
-            print ("",1)
+        if flags.seen(g1._edges[g1_ptr][0]):
+            print (L[out_ptr], g1._edges[g1_ptr][0], end=" ")
+#            print (g1.edge_label(g1_ptr), end=" ")
+            print (1)
         else:
-            print (L[out_ptr], g1._edges[g1_ptr][0], end="")
-            #print (g1.edge_label(g1_ptr), end="")
-            print ("",0)
-        newflags.add(g1._edges[g1_ptr])
-        g1_ptr += 1
+            print (L[out_ptr], g1._edges[g1_ptr][0], end=" ")
+#            print (g1.edge_label(g1_ptr), end=" ")
+            print (0)
+        flags.add(g1._edges[g1_ptr][0])
 
-        # flag part
-        while g1f_ptr < len(g1_flagsets) and g1_flagsets[g1f_ptr] == 1:
-            g1f_ptr += 1
-            newflags = set()
-        g1f_ptr += 1
-            
+        g1_ptr += 1
+        flags.adv_g1()
+        
         if g2_set[0] == 0:
             g2_ptr += 1
+            flags.adv_g2()
 
-            # flag part
-            while g2f_ptr < len(g2_flagsets) and g2_flagsets[g2f_ptr] == 1:
-                g2f_ptr += 1
-                newflags = set()
-            g2f_ptr += 1
     else:
         assert g2_set[0] == 0
-        if g2._edges[g2_ptr] in newflags:
-            print (L[out_ptr], g2._edges[g2_ptr][0], end="")
-            #print (g2.edge_label(g2_ptr), end="")
-            print ("",1)
+        if flags.seen(g2._edges[g2_ptr][0]):
+            print (L[out_ptr], g2._edges[g2_ptr][0], end=" ")
+#            print (g2.edge_label(g2_ptr), end=" ")
+            print (1)
         else:
-            print (L[out_ptr], g2._edges[g2_ptr][0], end="")
-            #print (g2.edge_label(g2_ptr), end="")
-            print ("",0)
-        newflags.add(g2._edges[g2_ptr])
-        g2_ptr += 1
+            print (L[out_ptr], g2._edges[g2_ptr][0], end=" ")
+#            print (g2.edge_label(g2_ptr), end=" ")
+            print (0)
+        flags.add(g2._edges[g2_ptr][0])
 
-        # flag part
-        while g2f_ptr < len(g2_flagsets) and g2_flagsets[g2f_ptr] == 1:
-            g2f_ptr += 1
-            newflags = set()
-        g2f_ptr += 1
+        g2_ptr += 1
+        flags.adv_g2()
