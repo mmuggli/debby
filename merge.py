@@ -29,17 +29,41 @@ def set_iter(sets):
         end = sets.index(1, start)
     yield sets[start:]
             
-def subdivide(g1_subcol, g2_subcol):
+def subdivide(g1_subcol, g2_subcol, colno, g1_ptr, g2_ptr, g1_deletions, g2_deletions):
     active_alphabet = sorted(list(set(g1_subcol) | set(g2_subcol)))
     g1_out = []
     g2_out = []
+    # for each $ in column, if the corresponding edge label exists in the other set, we can delete it
+    # FIXME: this is pretty inefficient:
+    for i in range(len(g1_subcol)):
+        if g1_subcol[i] == '$':
+            for j in range(len(g2_subcol)):
+                if g2_subcol[j] != '$' and g1._edges[g1_ptr + i] ==  g2._edges[g2_ptr + j]:
+                    print("deleting g1[", g1_ptr+i,"] b/c of colno", colno)
+                    g1_deletions[g1_ptr+i] = 1
+    for i in range(len(g2_subcol)):
+        if g2_subcol[i] == '$':
+            for j in range(len(g1_subcol)):
+                if g1_subcol[j] != '$' and g2._edges[g2_ptr + i] == g1._edges[g1_ptr + j]:
+                    print("deleting g2[", g2_ptr+i,"] b/c of colno", colno)                    
+                    g2_deletions[g2_ptr+i] = 1
+    # do_deletions(g1_deletions, g1_subcol, g1_ptr, g2_subcol
+    # if '$' in active_alphabet and len(active_alphabet) > 1 and colno != 0:
+    #     print g1_subcol, g2_subcol, colno
+    #     if g1_subcol[0] == '$':
+    #         g1_deletions[g1_ptr] = 1
+    #     else:
+    #         print(g2_subcol)
+    #         assert g2_subcol[0] == '$'
+    #         g2_deletions[g2_ptr] = 1
+            
     for letter in active_alphabet:
         g1_out += [0] * g1_subcol.count(letter) + [1]
         g2_out += [0] * g2_subcol.count(letter) + [1]
 
     return g1_out, g2_out, len(active_alphabet)
 
-def refine_sets(cols, sets, colno):
+def refine_sets(cols, sets, colno, g1_deletions, g2_deletions):
     g1_col, g2_col = cols
     g1_sets, g2_sets = sets
     g1_out_set = []
@@ -53,7 +77,12 @@ def refine_sets(cols, sets, colno):
         g1_num = len(g1_set) - 1
         g2_num = len(g2_set) - 1
         g1_subsets, g2_subsets, active_alpha_size = subdivide(g1_col[g1_ptr:g1_ptr + g1_num],
-                                                              g2_col[g2_ptr:g2_ptr + g2_num])
+                                                              g2_col[g2_ptr:g2_ptr + g2_num],
+                                                              colno,
+                                                              g1_ptr,
+                                                              g2_ptr,
+                                                              g1_deletions,
+                                                              g2_deletions)
         if colno == 0:
             L += [0] * (active_alpha_size - 1) + [1]
 
@@ -73,6 +102,8 @@ def refine_sets(cols, sets, colno):
 # the corresponding element of BWT appears to be included in that set (so far)
 g1_sets = [0] * g1.num_edges + [1]
 g2_sets = [0] * g2.num_edges + [1]
+g1_deletions = [0] * g1.num_edges
+g2_deletions = [0] * g2.num_edges
 
 def flagdump(flags):
     icount = 0
@@ -90,7 +121,7 @@ for colno, col in enumerate([i + 1 for i in range(g1.k)] + [0]):
     g2_col = get_column(g2, col)
     if col == 1:
         g1_col1, g2_col1 = g1_col, g2_col
-    g1_sets, g2_sets, Lval = refine_sets((g1_col, g2_col), (g1_sets, g2_sets), col)
+    g1_sets, g2_sets, Lval = refine_sets((g1_col, g2_col), (g1_sets, g2_sets), col, g1_deletions, g2_deletions)
     L += Lval
     if col == g1.k - 1:
         g1_flagsets, g2_flagsets = g1_sets, g2_sets
@@ -135,12 +166,16 @@ class Flags():
     def adv_g2(self):
         self.g2_ptr += 1
         self.__check_flagsets()        
-    
-flags = Flags(g1_flagsets, g2_flagsets)
-ntcounts = {'A':0, 'C':0, 'G':0,'T':0}
 
+flags = Flags(g1_flagsets, g2_flagsets)
+ntcounts = {'$': 0, 'A':0, 'C':0, 'G':0,'T':0}
+print("deletions", g1_deletions, g2_deletions)
 for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_sets))):
     if g1_set[0] == 0:
+        if g1_deletions[g1_ptr] == 1:
+            g1_ptr += 1
+            continue
+        
         print (L[out_ptr], g1._edges[g1_ptr][0], end=" ")
         ntcounts[g1_col1[g1_ptr]] += 1
 
@@ -159,6 +194,10 @@ for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_se
 
     else:
         assert g2_set[0] == 0
+        if g2_deletions[g2_ptr] == 1:
+            g2_ptr += 1
+            continue
+        
         print (L[out_ptr], g2._edges[g2_ptr][0], end=" ")
         ntcounts[g2_col1[g2_ptr]] += 1                 
 
@@ -171,5 +210,5 @@ for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_se
         g2_ptr += 1
         flags.adv_g2()
 
-print(0, ntcounts['A'], ntcounts['A'] + ntcounts['C']  , ntcounts['A'] + ntcounts['C'] + ntcounts['G'] )
+print(ntcounts['$'], ntcounts['$'] + ntcounts['A'], ntcounts['$'] + ntcounts['A'] + ntcounts['C']  , ntcounts['$'] + ntcounts['A'] + ntcounts['C'] + ntcounts['G'] )
 print(g1.k)
