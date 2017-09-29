@@ -1,8 +1,35 @@
 #!/usr/bin/python
 import sys
 import debby as db
-g1 = db.debruijn_graph.load(sys.argv[1])
-g2 = db.debruijn_graph.load(sys.argv[2])
+import optparse
+p = optparse.OptionParser()
+p.add_option("--fake", action="store_true", dest="fake", help="load files as fake debby files")
+p.add_option("--input1", action="store", dest="input1", help="input 1")
+p.add_option("--input2", action="store", dest="input2", help="input 2")
+
+p.set_defaults(fake=False)
+opts,args = p.parse_args()
+
+class FakeDebby():
+    def load(self, fname):
+        with open(fname) as f:
+            self._edge_labels = [line.strip() for line in f.readlines()]
+            self._edges = [lab[-1] for lab in self._edge_labels]
+            self.k = len(self._edge_labels[0]) - 1
+            self.num_edges = len(self._edge_labels)
+    def get_column(self, col_num):
+        if col_num == 0:
+            return self._edges
+        return [edge[self.k - col_num] for edge in self._edge_labels]
+
+if opts.fake:
+    g1 = FakeDebby()
+    g1.load(opts.input1)
+    g2 = FakeDebby()
+    g2.load(opts.input2)
+else:
+    g1 = db.debruijn_graph.load(opts.input1)
+    g2 = db.debruijn_graph.load(opts.input2)
 
 #for i in range(g1.num_edges): print g1.label(g1._edge_to_node(i)) + g1._edges[i]
 assert g1.k == g2.k
@@ -117,8 +144,8 @@ def flagdump(flags):
 
 L = []
 for colno, col in enumerate([i + 1 for i in range(g1.k)] + [0]):
-    g1_col = get_column(g1, col)
-    g2_col = get_column(g2, col)
+    g1_col = g1.get_column(col)
+    g2_col = g2.get_column(col)
     if col == 1:
         g1_col1, g2_col1 = g1_col, g2_col
     g1_sets, g2_sets, Lval = refine_sets((g1_col, g2_col), (g1_sets, g2_sets), col, g1_deletions, g2_deletions)
@@ -169,6 +196,8 @@ class Flags():
 
 flags = Flags(g1_flagsets, g2_flagsets)
 ntcounts = {'$': 0, 'A':0, 'C':0, 'G':0,'T':0}
+
+
 print("deletions", g1_deletions, g2_deletions)
 for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_sets))):
     if g1_set[0] == 0:
@@ -210,5 +239,5 @@ for out_ptr, (g1_set, g2_set) in enumerate(zip(set_iter(g1_sets), set_iter(g2_se
         g2_ptr += 1
         flags.adv_g2()
 
-print(ntcounts['$'], ntcounts['$'] + ntcounts['A'], ntcounts['$'] + ntcounts['A'] + ntcounts['C']  , ntcounts['$'] + ntcounts['A'] + ntcounts['C'] + ntcounts['G'] )
+print(0, ntcounts['$'], ntcounts['$'] + ntcounts['A'], ntcounts['$'] + ntcounts['A'] + ntcounts['C']  , ntcounts['$'] + ntcounts['A'] + ntcounts['C'] + ntcounts['G'] )
 print(g1.k)
