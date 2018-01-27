@@ -5,10 +5,10 @@ from bisect import bisect_left, bisect_right
 def rank(symbol, sequence, i):
   return sequence[:i+1].count(symbol)
 
-# def select(symbol, sequence, i):
-#   if i <= 0: return -1
-#   ranks = (rank(symbol, sequence, i) for i in range(len(sequence)))
-#   return next(it.dropwhile(lambda __x: __x[1]<i, enumerate(ranks)), (None,None))[0]
+def oldselect(symbol, sequence, i):
+  if i <= 0: return -1
+  ranks = (rank(symbol, sequence, i) for i in range(len(sequence)))
+  return next(it.dropwhile(lambda __x: __x[1]<i, enumerate(ranks)), (None,None))[0]
 
 # this method is slower, 10 seconds vs 4 seconds for soln below
 # https://stackoverflow.com/questions/8337069/find-the-index-of-the-nth-item-in-a-list
@@ -26,11 +26,22 @@ def qselect(item, iterable, i):
   return next(islice(indicies, n, None), -1)
       
 def select(symbol, sequence, i):
-  if i <= 0: return -1
+  if i <= 0:
+#    print "select => -1"
+    return -1
+  s = oldselect(symbol, sequence, i)
+#  if not s or  s < 0: print "select => -1"
+  return s
+#  print("oldselect(", symbol, i, ") => ", oldselect(symbol, sequence, i))
   start = 0
   for j in range(i):
+    try:
       found = sequence.index(symbol, start)
-      start = found + 1
+    except ValueError:
+      return -1
+    start = found + 1
+  assert found == oldselect(symbol, sequence, i)
+#  print("select(", symbol, i,") => ", found)
   return found
 
 
@@ -119,9 +130,15 @@ class debruijn_graph:
     return self._edge_to_node(selector(sub_idx))
 
   def _label_iter(self, i):
+#    print("_label_iter(", i, ") called")
     while True:
-      yield self._F_inv(i)
+#      print("yielding self._F_inv(i), where i=", i)
+      __y = self._F_inv(i)
+#      print("  =>", __y)
+      yield __y
+#      print("calling self._bwd(",i,")")
       i = self._bwd(i)
+#      print("  =>", i)
 
   def label(self, v):
     i = self._first_edge(v)
@@ -129,7 +146,18 @@ class debruijn_graph:
 
   def edge_label(self, i):
     return "".join(take(self.k, self._label_iter(i))[::-1]) + self._edges[i][0]
-  
+
+  def get_column(self, col_num):
+    column = []
+    for i in range(self.num_edges):
+        if col_num == 0:
+            column.append(self._edges[i][0])
+        else:
+            for j in range(col_num - 1):
+                i = self._bwd(i)
+            column.append(self._F_inv(i))
+    return column
+
   @staticmethod
   def load(filename):
     with open(filename, "r") as f:
